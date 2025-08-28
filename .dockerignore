@@ -1,0 +1,98 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+htmlcov/
+*.cover
+.hypothesis/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ZenML local files
+.zen/
+zenml_store/
+.zenml/
+
+# Local data and models (should be fetched/mounted)
+data/
+models/
+*.pkl
+*.joblib
+*.h5
+
+# Logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+.tmp
+
+# Reports and outputs (generated at runtime)
+reports/
+outputs/
+*.html
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Node modules (if any frontend)
+node_modules/
+
+# Large files that shouldn't be in container
+*.csv
+*.json
+*.parquet
+*.arrow
+
+# Secrets (should be passed as env vars or mounted)
+secrets/
+.secrets
+*.key
+*.pem
+.env.*
