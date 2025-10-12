@@ -26,6 +26,7 @@ class Country(Enum):
     UK = CountryInfo("UK", 1.1, "GBP", "£", 0.20, 0.9, 0.08)
     CANADA = CountryInfo("Canada", 0.95, "CAD", "C$", 0.13, 1.1, 0.08)
     AUSTRALIA = CountryInfo("Australia", 1.2, "AUD", "A$", 0.10, 1.4, 0.07)
+    FRANCE = CountryInfo("France", 1.15, "EUR", "€", 0.20, 0.8, 0.15)
     
     @classmethod
     def get_all_names(cls) -> list[str]:
