@@ -18,13 +18,40 @@ zenml stack set <INSERT_NAME>
 
 2. Run training pipeline:
 ```bash
+# Using default configuration
 python training_pipeline.py
+
+# Using scheduled configuration (runs every minute for testing)
+python training_pipeline.py --config training_schedule_config.yaml
+
+# Using custom configuration
+python training_pipeline.py --config path/to/your/config.yaml
 ```
 
 3. Run inference:
 ```bash
 python inference_pipeline.py
 ```
+
+## Schedule Management
+
+### Deploy Scheduled Pipeline
+```bash
+# Create and deploy a scheduled training pipeline (runs every minute for testing)
+python training_pipeline.py --config training_schedule_config.yaml
+```
+
+### Manage Schedules
+```bash
+# List all schedules
+zenml pipeline schedule list
+# Update schedule cron expression
+zenml pipeline schedule update price-prediction-training-schedule --cron-expression="*/2 * * * *"
+
+# Delete a schedule (removes from both ZenML and orchestrator)
+zenml pipeline schedule delete price-prediction-training-schedule
+```
+
 
 ## Current Implementation
 

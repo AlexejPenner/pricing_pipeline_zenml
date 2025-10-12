@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Annotated, Dict, Tuple, List, Union
 import datetime
+import click
 
 import pandas as pd
 import plotly.express as px
@@ -18,6 +19,7 @@ from zenml import log_metadata, step, pipeline, Model, ArtifactConfig, add_tags
 from zenml.config import DockerSettings
 from zenml.enums import ArtifactType
 from zenml.materializers.materializer_registry import materializer_registry
+from zenml.steps import ResourceSettings
 from zenml.types import HTMLString
 
 from sklearn_materializer import SklearnPipelineMaterializer
@@ -28,7 +30,7 @@ materializer_registry.register_and_overwrite_type(
     type_=SklearnPipelineMaterializer
 )
 
-@step(enable_cache=True)
+@step
 def load_data(n_samples: int = 1000) -> Annotated[pd.DataFrame, "raw_data"]:
     """Load synthetic product price data with various features."""
     # Create synthetic e-commerce dataset
@@ -40,7 +42,6 @@ def load_data(n_samples: int = 1000) -> Annotated[pd.DataFrame, "raw_data"]:
     missing_stats = df.isnull().sum().to_dict()
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     descriptive_stats = df[numeric_cols].describe().to_dict()
-    
     # Add category-specific metrics for enhanced reporting
     category_stats = {}
     for category in df["category"].unique():
@@ -73,7 +74,7 @@ def load_data(n_samples: int = 1000) -> Annotated[pd.DataFrame, "raw_data"]:
     
     return df
 
-@step(enable_cache=False)
+@step
 def analyze_data(data: pd.DataFrame) -> Annotated[Dict, "data_analysis"]:
     """Analyze the dataset and compute various statistics."""
     analysis = {}
@@ -111,7 +112,7 @@ def analyze_data(data: pd.DataFrame) -> Annotated[Dict, "data_analysis"]:
     
     return analysis
 
-@step(enable_cache=True) 
+@step
 def filter_by_country(data: pd.DataFrame, country: str = "All") -> Annotated[pd.DataFrame, "filtered_data"]:
     """Filter dataset by country if specified."""
     add_tags(tags=[f"country: {country}"], infer_artifact=True)
@@ -145,7 +146,7 @@ def filter_by_country(data: pd.DataFrame, country: str = "All") -> Annotated[pd.
         )
         return data
 
-@step(enable_cache=True)
+@step
 def clean_data(data: pd.DataFrame) -> Annotated[pd.DataFrame, "cleaned_data"]:
     """Clean the dataset by handling missing values and outliers."""
     # Store pre-cleaning stats
@@ -195,17 +196,13 @@ def clean_data(data: pd.DataFrame) -> Annotated[pd.DataFrame, "cleaned_data"]:
     
     return cleaned_data
 
-@step(
-    enable_cache=False,
-)
+@step
 def train_model(
-    data: pd.DataFrame, 
-    epochs: int
-) -> Tuple[
+    data: pd.DataFrame,
+    epochs: int = 15) -> Tuple[
     Annotated[
         Pipeline, ArtifactConfig(name="price_prediction_model", artifact_type=ArtifactType.MODEL,)], 
-    Annotated[HTMLString, "model_report"]
-]:
+    Annotated[HTMLString, "model_report"]]:
     """Train a model to predict product prices."""
     
     # Define features and target
@@ -213,7 +210,6 @@ def train_model(
     categorical_features = ["category", "discount_offered"]
     numeric_features = ["brand_rating", "num_reviews", "days_since_release", 
                         "shipping_weight", "competitors_price", "manufacturing_cost", "tax_rate"]
-    
     features = categorical_features + numeric_features
     X = data[features]
     y = data["price"]
@@ -354,14 +350,20 @@ def train_model(
         metadata=metadata
     )
 
+    # Log detailed metrics about the model
+    log_metadata(
+        metadata=metadata,
+        infer_model=True,
+        model_name="PricePredictionModel"
+    )
+
     return model, HTMLString(generate_model_report(data=data, model=model_metrics))
 
-@step(enable_cache=False)
+@step
 def generate_data_analysis_report(
     raw_data: pd.DataFrame,
     cleaned_data: pd.DataFrame,
-    analysis: Dict
-) -> Annotated[HTMLString, "data_analysis_report"]:
+    analysis: Dict) -> Annotated[HTMLString, "data_analysis_report"]:
     """Generate an HTML report with Plotly visualizations of the data analysis."""
     
     # Log basic metadata about the report
@@ -384,18 +386,7 @@ def generate_data_analysis_report(
     return HTMLString(generate_data_report(cleaned_data=cleaned_data, raw_data=raw_data, analysis=analysis))
 
 
-@pipeline(
-    model=Model(
-        name="PricePredictionModel",
-        description="End-to-end pipeline for price prediction.",
-    ),
-    settings={
-        "docker": DockerSettings(  # Only relevant when you start orchestrating on Docker
-            requirements="requirements.txt",
-            python_package_installer="uv",
-        ),
-    },
-)
+@pipeline
 def price_prediction_training(epochs: int = 15, n_samples: int = 1000, country: Union[str, Country] = "All"):
     """Pipeline that demonstrates ZenML's visualization and reporting capabilities."""
     # Convert Country enum to string before passing to steps
@@ -405,12 +396,18 @@ def price_prediction_training(epochs: int = 15, n_samples: int = 1000, country: 
     data_analysis = analyze_data(raw_data)
     filtered_data = filter_by_country(raw_data, country_name)
     cleaned_data = clean_data(filtered_data)
-    model, model_report = train_model(cleaned_data, epochs=epochs)
+    model, model_report = train_model(cleaned_data, epochs)
+    
     
     data_report = generate_data_analysis_report(raw_data, cleaned_data, data_analysis)
 
     return model, model_report, data_report
 
+@click.command()
+@click.option("--config", default="training_config.yaml", help="Path to configuration file")
+def main(config: str):
+    """Run the price prediction training pipeline."""
+    price_prediction_training.with_options(config_path=config)()
+
 if __name__ == "__main__":
-    # Now you can use the Country enum directly!
-    price_prediction_training(n_samples=1000, epochs=10, country=Country.GERMANY) 
+    main() 

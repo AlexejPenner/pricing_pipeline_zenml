@@ -188,3 +188,4 @@ secrets/
 .secrets
 *.key
 *.pem
+CLAUDE.md

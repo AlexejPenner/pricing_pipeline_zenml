@@ -5,9 +5,32 @@ from zenml import step, pipeline, Model, get_step_context
 from zenml.config import DockerSettings
 from zenml.enums import ModelStages
 
+@step
+def load_new_row(
+    category: str = 'Electronics',
+    discount_offered: bool = True,
+    brand_rating: float = 4.2,
+    num_reviews: int = 150,
+    days_since_release: int = 45,
+    shipping_weight: float = 2.1,
+    competitors_price: float = 199.99,
+    manufacturing_cost: float = 85.50,
+    tax_rate: float = 0.08) -> Annotated[pd.DataFrame, "new_row"]:
+    """Load a new row of data."""
+    return pd.DataFrame({
+        'category': category,
+        'discount_offered': discount_offered,
+        'brand_rating': brand_rating,
+        'num_reviews': num_reviews,
+        'days_since_release': days_since_release,
+        'shipping_weight': shipping_weight,
+        'competitors_price': competitors_price,
+        'manufacturing_cost': manufacturing_cost,
+        'tax_rate': tax_rate
+    })
 
 @step
-def inference(model_artifact: str = "price_prediction_model") -> Annotated[pd.DataFrame, "inference_predictions"]:
+def inference(input_data: pd.DataFrame, model_artifact: str = "price_prediction_model") -> Annotated[pd.DataFrame, "inference_predictions"]:
     """Load model and run inference on a single synthetic data sample."""
     zenml_model = get_step_context().model
     
@@ -19,21 +42,8 @@ def inference(model_artifact: str = "price_prediction_model") -> Annotated[pd.Da
     
     print(f"Loaded model: {type(model)}")
     
-    # Create a single row of synthetic data ad-hoc
-    sample_data = {
-        'category': 'Electronics',
-        'discount_offered': True,
-        'brand_rating': 4.2,
-        'num_reviews': 150,
-        'days_since_release': 45,
-        'shipping_weight': 2.1,
-        'competitors_price': 199.99,
-        'manufacturing_cost': 85.50,
-        'tax_rate': 0.08
-    }
-    
     # Convert to DataFrame
-    X_inference = pd.DataFrame([sample_data])
+    X_inference = pd.DataFrame([input_data])
     
     print("Sample input data:")
     print(X_inference.to_string(index=False))
@@ -48,22 +58,10 @@ def inference(model_artifact: str = "price_prediction_model") -> Annotated[pd.Da
     return results_df
 
 
-@pipeline(
-    enable_cache=False,
-    model=Model(
-        name="PricePredictionModel",
-        description="Show case Model Control Plane.",
-        version=ModelStages.LATEST  # Replace with ModelStages.PRODUCTION to attach to the production model
-    ),
-    settings={
-        "docker": DockerSettings(  # Only relevant when you start orchestrating on Docker
-            requirements="requirements.txt",
-            python_package_installer="uv",
-        ),
-    },
-)
+@pipeline
 def price_prediction_inference():
-    inference()
+    new_data_point = load_new_row()
+    inference(new_data_point)
 
 if __name__ == "__main__":
-    price_prediction_inference()
+    price_prediction_inference.with_options(config_path="inference_config.yaml")()

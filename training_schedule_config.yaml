@@ -1,0 +1,57 @@
+# Training Pipeline Schedule Configuration
+# This configuration file contains schedule settings for the price prediction training pipeline
+
+# Pipeline-level configuration
+enable_cache: True
+enable_step_logs: True
+enable_artifact_metadata: True
+enable_artifact_visualization: True
+
+# Pipeline parameters
+parameters:
+  epochs: 15
+  n_samples: 1000
+  country: "All"
+
+# Model configuration
+model:
+  name: "PricePredictionModel"
+  description: "End-to-end pipeline for price prediction."
+
+# Schedule configuration
+schedule:
+  name: "price-prediction-training-schedule"
+  cron_expression: "* * * * *"  # Run every minute for testing
+  catchup: false
+
+# Docker settings
+settings:
+  docker:
+    requirements: "requirements.txt"
+    python_package_installer: "uv"
+
+# Step-specific configuration
+steps:
+  load_data:
+    enable_cache: True
+    parameters:
+      n_samples: 1000
+
+  analyze_data:
+    enable_cache: False
+
+  filter_by_country:
+    enable_cache: True
+    parameters:
+      country: "All"
+
+  clean_data:
+    enable_cache: True
+
+  train_model:
+    enable_cache: False
+    parameters:
+      epochs: 15
+
+  generate_data_analysis_report:
+    enable_cache: False
