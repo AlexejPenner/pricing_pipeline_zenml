@@ -189,3 +189,4 @@ secrets/
 *.key
 *.pem
 CLAUDE.md
+commands.txt

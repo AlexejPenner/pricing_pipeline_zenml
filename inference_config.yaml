@@ -7,6 +7,18 @@ enable_step_logs: True
 enable_artifact_metadata: True
 enable_artifact_visualization: True
 
+# Pipeline parameters
+parameters:
+  category: "Electronics"
+  discount_offered: True
+  brand_rating: 4.2
+  num_reviews: 150
+  days_since_release: 45
+  shipping_weight: 2.1
+  competitors_price: 199.99
+  manufacturing_cost: 85.50
+  tax_rate: 0.08
+
 # Model configuration
 model:
   name: "PricePredictionModel"
@@ -15,23 +27,14 @@ model:
 
 # Docker settings
 settings:
+  deployer:
+    generate_auth_key: True
   docker:
     requirements: "requirements.txt"
     python_package_installer: "uv"
 
 # Step-specific configuration
 steps:
-  load_new_row:
-    parameters:
-      category: "Electronics"
-      discount_offered: True
-      brand_rating: 4.2
-      num_reviews: 150
-      days_since_release: 45
-      shipping_weight: 2.1
-      competitors_price: 199.99
-      manufacturing_cost: 85.50
-      tax_rate: 0.08
   inference:
     parameters:
       model_artifact: "price_prediction_model"

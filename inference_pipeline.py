@@ -18,15 +18,15 @@ def load_new_row(
     tax_rate: float = 0.08) -> Annotated[pd.DataFrame, "new_row"]:
     """Load a new row of data."""
     return pd.DataFrame({
-        'category': category,
-        'discount_offered': discount_offered,
-        'brand_rating': brand_rating,
-        'num_reviews': num_reviews,
-        'days_since_release': days_since_release,
-        'shipping_weight': shipping_weight,
-        'competitors_price': competitors_price,
-        'manufacturing_cost': manufacturing_cost,
-        'tax_rate': tax_rate
+        'category': [category],
+        'discount_offered': [discount_offered],
+        'brand_rating': [brand_rating],
+        'num_reviews': [num_reviews],
+        'days_since_release': [days_since_release],
+        'shipping_weight': [shipping_weight],
+        'competitors_price': [competitors_price],
+        'manufacturing_cost': [manufacturing_cost],
+        'tax_rate': [tax_rate]
     })
 
 @step
@@ -42,8 +42,8 @@ def inference(input_data: pd.DataFrame, model_artifact: str = "price_prediction_
     
     print(f"Loaded model: {type(model)}")
     
-    # Convert to DataFrame
-    X_inference = pd.DataFrame([input_data])
+    # Use the input DataFrame directly
+    X_inference = input_data
     
     print("Sample input data:")
     print(X_inference.to_string(index=False))
@@ -59,8 +59,18 @@ def inference(input_data: pd.DataFrame, model_artifact: str = "price_prediction_
 
 
 @pipeline
-def price_prediction_inference():
-    new_data_point = load_new_row()
+def price_prediction_inference(
+    category: str = 'Electronics',
+    discount_offered: bool = True,
+    brand_rating: float = 4.2,
+    num_reviews: int = 150,
+    days_since_release: int = 45,
+    shipping_weight: float = 2.1,
+    competitors_price: float = 199.99,
+    manufacturing_cost: float = 85.50,
+    tax_rate: float = 0.08
+    ):
+    new_data_point = load_new_row(category, discount_offered, brand_rating, num_reviews, days_since_release, shipping_weight, competitors_price, manufacturing_cost, tax_rate)
     inference(new_data_point)
 
 if __name__ == "__main__":
