@@ -63,12 +63,50 @@ def resolve_country(country: Union[str, Country, None]) -> str:
         return "All"
 
 def mock_data(n_samples: int = 1000) -> pd.DataFrame:
+    """
+    Generate synthetic product price data with various features.
+    
+    Args:
+        n_samples: Number of samples to generate (default: 1000)
+        
+    Returns:
+        pd.DataFrame: Synthetic dataset with product information
+        
+    Raises:
+        ValueError: If n_samples is not positive
+    """
+    # Validate input
+    if n_samples <= 0:
+        raise ValueError("n_samples must be positive")
+    
     # Use the Country enum for data generation
     countries = Country.get_all_names()
     country_weights = Country.get_weights()
     
+    # Validate that we have countries and weights
+    if not countries:
+        raise ValueError("No countries available for data generation")
+    
+    if len(countries) != len(country_weights):
+        raise ValueError("Number of countries and weights must match")
+    
+    # Normalize weights to ensure they sum to 1.0
+    total_weight = sum(country_weights)
+    if total_weight == 0:
+        # Fallback to uniform distribution if all weights are zero
+        country_weights = [1.0 / len(countries)] * len(countries)
+    else:
+        country_weights = [w / total_weight for w in country_weights]
+    
+    # Validate normalized weights
+    if abs(sum(country_weights) - 1.0) > 1e-10:
+        raise ValueError("Normalized weights do not sum to 1.0")
+    
     # Generate countries for each sample
-    countries_assigned = np.random.choice(countries, n_samples, p=country_weights)
+    try:
+        countries_assigned = np.random.choice(countries, n_samples, p=country_weights)
+    except ValueError as e:
+        raise ValueError(f"Failed to generate country assignments: {e}")
     
     # First generate the categories
     categories = np.random.choice(["Electronics", "Clothing", "Home", "Books", "Sports"], n_samples)
@@ -150,31 +188,75 @@ def mock_data(n_samples: int = 1000) -> pd.DataFrame:
     shipping_weights = np.maximum(shipping_weights, 0.1)  # Minimum weight of 0.1 kg
     
     # Generate remaining data with country-aware features
-    data = {
-        "product_id": [f"PROD-{i:04d}" for i in range(n_samples)],
-        "category": categories,
-        "country": countries_assigned,
-        "currency": [Country.get_by_name(country).value.currency for country in countries_assigned],
-        "brand_rating": np.random.uniform(1, 5, n_samples),
-        "num_reviews": np.random.randint(0, 500, n_samples),
-        "days_since_release": np.random.randint(1, 1000, n_samples),
-        "discount_offered": np.random.choice([True, False], n_samples),
-        "shipping_weight": shipping_weights,
-        "competitors_price": prices * np.random.uniform(0.8, 1.2, n_samples),  # Competitors price varies around our price
-        "manufacturing_cost": manufacturing_costs,
-        "price": prices,
-        "tax_rate": [Country.get_by_name(country).value.tax_rate for country in countries_assigned],
-        "final_price": prices * (1 + np.array([Country.get_by_name(country).value.tax_rate for country in countries_assigned]))
-    }
+    try:
+        # Generate product IDs
+        product_ids = [f"PROD-{i:04d}" for i in range(n_samples)]
+        
+        # Generate currencies and tax rates with error handling
+        currencies = []
+        tax_rates = []
+        for country in countries_assigned:
+            try:
+                country_enum = Country.get_by_name(country)
+                currencies.append(country_enum.value.currency)
+                tax_rates.append(country_enum.value.tax_rate)
+            except ValueError:
+                # Fallback to USA if country not found
+                currencies.append("USD")
+                tax_rates.append(0.08)
+        
+        # Generate other features
+        brand_ratings = np.random.uniform(1, 5, n_samples)
+        num_reviews = np.random.randint(0, 500, n_samples)
+        days_since_release = np.random.randint(1, 1000, n_samples)
+        discount_offered = np.random.choice([True, False], n_samples)
+        competitors_price = prices * np.random.uniform(0.8, 1.2, n_samples)
+        final_prices = prices * (1 + np.array(tax_rates))
+        
+        data = {
+            "product_id": product_ids,
+            "category": categories,
+            "country": countries_assigned,
+            "currency": currencies,
+            "brand_rating": brand_ratings,
+            "num_reviews": num_reviews,
+            "days_since_release": days_since_release,
+            "discount_offered": discount_offered,
+            "shipping_weight": shipping_weights,
+            "competitors_price": competitors_price,
+            "manufacturing_cost": manufacturing_costs,
+            "price": prices,
+            "tax_rate": tax_rates,
+            "final_price": final_prices
+        }
+    except Exception as e:
+        raise ValueError(f"Failed to generate product data: {e}")
     
     # Introduce some missing values
-    for col in ["brand_rating", "num_reviews", "shipping_weight"]:
-        missing_indices = np.random.choice(range(n_samples), size=int(n_samples * 0.05), replace=False)
-        data[col] = pd.Series(data[col])
-        data[col].iloc[missing_indices] = None
+    try:
+        for col in ["brand_rating", "num_reviews", "shipping_weight"]:
+            if col in data:
+                missing_count = max(1, int(n_samples * 0.05))  # At least 1 missing value
+                missing_indices = np.random.choice(range(n_samples), size=missing_count, replace=False)
+                data[col] = pd.Series(data[col])
+                data[col].iloc[missing_indices] = None
+    except Exception as e:
+        raise ValueError(f"Failed to introduce missing values: {e}")
     
-    df = pd.DataFrame(data)
-    return df
+    # Create DataFrame with error handling
+    try:
+        df = pd.DataFrame(data)
+        
+        # Validate the DataFrame
+        if df.empty:
+            raise ValueError("Generated DataFrame is empty")
+        
+        if len(df) != n_samples:
+            raise ValueError(f"DataFrame length ({len(df)}) doesn't match expected samples ({n_samples})")
+        
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to create DataFrame: {e}")
 
 def make_category_boxplot_data(field, variable_name, data: pd.DataFrame):
     """Generate boxplot data for a specific field by category.
