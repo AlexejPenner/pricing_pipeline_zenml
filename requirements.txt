@@ -6,3 +6,4 @@ zenml>=0.84.0
 click>=8.0.0
 joblib>=1.0.0
 pyarrow
+mlflow

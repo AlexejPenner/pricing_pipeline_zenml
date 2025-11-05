@@ -6,9 +6,9 @@ enable_artifact_visualization: True
 
 # Pipeline parameters
 parameters:
-  epochs: 15
-  n_samples: 1000
-  country: "All"
+  epochs: 10
+  n_samples: 11000
+  country: ""
 
 # Model configuration
 model:
@@ -25,16 +25,12 @@ settings:
 steps:
   load_data:
     enable_cache: True
-    parameters:
-      n_samples: 1000
 
   analyze_data:
     enable_cache: False
 
   filter_by_country:
     enable_cache: True
-    parameters:
-      country: "All"
 
   clean_data:
     enable_cache: True
@@ -44,8 +40,6 @@ steps:
       requirements: "requirements_gpu.txt"
       python_package_installer: "uv"
     enable_cache: False
-    parameters:
-      epochs: 15
 
   generate_data_analysis_report:
     enable_cache: False

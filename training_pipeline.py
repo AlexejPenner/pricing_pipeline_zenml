@@ -31,7 +31,7 @@ materializer_registry.register_and_overwrite_type(
 )
 
 @step
-def load_data(n_samples: int = 1000) -> Annotated[pd.DataFrame, "raw_data"]:
+def load_data(n_samples: int) -> Annotated[pd.DataFrame, "raw_data"]:
     """Load synthetic product price data with various features."""
     # Create synthetic e-commerce dataset
     np.random.seed(42)
@@ -196,14 +196,26 @@ def clean_data(data: pd.DataFrame) -> Annotated[pd.DataFrame, "cleaned_data"]:
     
     return cleaned_data
 
-@step
+
+@step(
+    experiment_tracker=True
+)
 def train_model(
     data: pd.DataFrame,
-    epochs: int = 15) -> Tuple[
-    Annotated[
-        Pipeline, ArtifactConfig(name="price_prediction_model", artifact_type=ArtifactType.MODEL,)], 
-    Annotated[HTMLString, "model_report"]]:
+    epochs: int = 15
+    ) -> Tuple[
+        Annotated[Pipeline, ArtifactConfig(name="price_prediction_model", artifact_type=ArtifactType.MODEL,)], 
+        Annotated[HTMLString, "model_report"]
+        ]:
     """Train a model to predict product prices."""
+    
+    import mlflow
+    mlflow.autolog()
+    mlflow.set_tag("model_type", "GradientBoostingRegressor")
+    mlflow.set_tag("epochs", epochs)
+    mlflow.set_tag("n_samples", data.shape[0])
+    mlflow.set_tag("country", data["country"].unique()[0])
+    mlflow.set_tag("model_name", "PricePredictionModel")
     
     # Define features and target
     # Note: We exclude product_id, country, currency since they're identifiers
@@ -387,7 +399,7 @@ def generate_data_analysis_report(
 
 
 @pipeline
-def price_prediction_training(epochs: int = 15, n_samples: int = 1000, country: Union[str, Country] = "All"):
+def price_prediction_training(n_samples: int, epochs: int = 15, country: Union[str, Country] = "All"):
     """Pipeline that demonstrates ZenML's visualization and reporting capabilities."""
     # Convert Country enum to string before passing to steps
     country_name = resolve_country(country)
