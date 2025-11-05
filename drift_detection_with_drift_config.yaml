@@ -17,9 +17,8 @@ parameters:
 
 # Model configuration
 model:
-  name: "PricePredictionModel_WithDrift"
+  name: "PricePrediction"
   description: "Price prediction model demonstrating drift detection when data drift occurs."
-  version: "2.0.0"
   license: "MIT"
   tags:
     - drift_detection

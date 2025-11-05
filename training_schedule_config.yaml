@@ -15,7 +15,7 @@ parameters:
 
 # Model configuration
 model:
-  name: "PricePredictionModel"
+  name: "PricePrediction"
   description: "End-to-end pipeline for price prediction."
 
 # Schedule configuration

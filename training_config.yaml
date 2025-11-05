@@ -12,7 +12,7 @@ parameters:
 
 # Model configuration
 model:
-  name: "PricePredictionModel"
+  name: "PricePrediction"
   description: "End-to-end pipeline for price prediction."
 
 # Docker settings
@@ -39,6 +39,9 @@ steps:
     docker:
       requirements: "requirements_gpu.txt"
       python_package_installer: "uv"
+      build_config:
+        build_options:
+          --platform linux/amd64
     enable_cache: False
 
   generate_data_analysis_report:

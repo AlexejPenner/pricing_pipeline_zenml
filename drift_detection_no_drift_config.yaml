@@ -17,10 +17,8 @@ parameters:
 
 # Model configuration
 model:
-  name: "PricePredictionModel_NoDrift"
+  name: "PricePrediction"
   description: "Price prediction model with successful drift detection - no drift scenario."
-  version: "1.0.0"
-  license: "MIT"
   tags:
     - drift_detection
     - monitoring

@@ -21,7 +21,7 @@ parameters:
 
 # Model configuration
 model:
-  name: "PricePredictionModel"
+  name: "PricePrediction"
   description: "Show case Model Control Plane."
   version: "production" 
 

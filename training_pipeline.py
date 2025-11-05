@@ -276,7 +276,6 @@ def train_model(
     mlflow.set_tag("epochs", epochs)
     mlflow.set_tag("n_samples", data.shape[0])
     mlflow.set_tag("country", data["country"].unique()[0])
-    mlflow.set_tag("model_name", "PricePredictionModel")
     
     # Define features and target
     # Note: We exclude product_id, country, currency since they're identifiers

@@ -1,0 +1,83 @@
+# Evaluation Pipeline Configuration
+# This configuration file contains all parameters and settings for the price prediction evaluation pipeline
+
+# Pipeline-level configuration
+enable_cache: False
+enable_step_logs: True
+enable_artifact_metadata: True
+enable_artifact_visualization: True
+
+# Pipeline parameters
+parameters:
+  n_samples: 2000  # Number of samples in evaluation dataset
+  model_artifact: "price_prediction_model"  # Name of the model artifact to evaluate
+  simulate_drift: True  # Set to True to simulate data drift in evaluation dataset
+
+# Model configuration
+model:
+  name: "PricePrediction"
+  description: "Price prediction model - evaluation run."
+  version: "production"  # Evaluate the production model
+
+# Docker settings
+settings:
+  deployer:
+    generate_auth_key: True
+  docker:
+    requirements: "requirements.txt"
+    python_package_installer: "uv"
+
+# Step-specific configuration
+steps:
+  load_reference_data:
+    enable_cache: True  # Reference data is consistent (seed 42)
+    
+  load_evaluation_dataset:
+    enable_cache: False  # Always use fresh evaluation data
+    
+  preprocess_evaluation_data:
+    enable_cache: False
+    
+  load_production_model:
+    enable_cache: False  # Cache model loading
+    
+  generate_predictions:
+    enable_cache: False  # Always generate fresh predictions
+    
+  calculate_evaluation_metrics:
+    enable_cache: False
+    
+  model_performance_step:
+    enable_cache: False  # Always generate fresh performance report
+    experiment_tracker: True  # Track evaluation runs
+    
+  attach_metadata_to_model:
+    enable_cache: False  # Always update model metadata
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - r2_score
+    - rmse
+    - mae
+    - mape
+  category_breakdown: True  # Calculate metrics per category
+  performance_thresholds:
+    excellent_r2: 0.9
+    good_r2: 0.7
+    fair_r2: 0.5
+    poor_r2: 0.0
+
+# Evidently report configuration
+evidently_config:
+  metrics:
+    - RegressionPerformancePreset
+    - DataQualityPreset
+  color_scheme: "default"
+  report_options:
+    primary_color: "#5a86ad"
+    fill_color: "#fff4f2"
+    zero_line_color: "#016795"
+    current_data_color: "#c292a1"
+    reference_data_color: "#017b92"
+
