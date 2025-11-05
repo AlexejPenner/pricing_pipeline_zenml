@@ -22,6 +22,10 @@ from zenml.materializers.materializer_registry import materializer_registry
 from zenml.steps import ResourceSettings
 from zenml.types import HTMLString
 
+# Evidently imports for drift detection
+from zenml.integrations.evidently.steps import evidently_report_step, EvidentlyColumnMapping
+from zenml.integrations.evidently.metrics import EvidentlyMetricConfig
+
 from sklearn_materializer import SklearnPipelineMaterializer
 from utils import mock_data, generate_data_report, generate_model_report, Country, resolve_country
 
@@ -29,6 +33,63 @@ materializer_registry.register_and_overwrite_type(
     key=Pipeline, 
     type_=SklearnPipelineMaterializer
 )
+
+@step
+def load_reference_data(n_samples: int) -> Annotated[pd.DataFrame, "reference_data"]:
+    """Load reference (baseline) synthetic product price data."""
+    np.random.seed(42)  # Fixed seed for reproducible reference data
+    
+    df = mock_data(n_samples)
+    
+    log_metadata(
+        artifact_name="reference_data",
+        infer_artifact=True,
+        metadata={
+            "rows": df.shape[0],
+            "columns": df.shape[1],
+            "data_type": "reference",
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+    )
+    
+    return df
+
+@step
+def load_current_data(n_samples: int, simulate_drift: bool = False) -> Annotated[pd.DataFrame, "current_data"]:
+    """Load current synthetic product price data with optional drift simulation."""
+    np.random.seed(123)  # Different seed for current data
+    
+    drift_config = None
+    if simulate_drift:
+        # Define drift scenario: Electronics getting more expensive, Books less popular
+        drift_config = {
+            "price_multipliers": {
+                "Electronics": 1.3,  # 30% price increase
+                "Clothing": 1.1,     # 10% price increase
+                "Books": 0.9         # 10% price decrease
+            },
+            "category_shift": {
+                "Electronics": 0.35,  # Increase from 20% to 35%
+                "Books": 0.1          # Decrease from 20% to 10%
+            },
+            "time_factor": 1.0  # Full drift effect
+        }
+    
+    df = mock_data(n_samples, drift_config=drift_config)
+    
+    log_metadata(
+        artifact_name="current_data",
+        infer_artifact=True,
+        metadata={
+            "rows": df.shape[0],
+            "columns": df.shape[1],
+            "data_type": "current",
+            "drift_simulated": simulate_drift,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+    )
+    
+    return df
 
 @step
 def load_data(n_samples: int) -> Annotated[pd.DataFrame, "raw_data"]:
@@ -397,29 +458,101 @@ def generate_data_analysis_report(
     
     return HTMLString(generate_data_report(cleaned_data=cleaned_data, raw_data=raw_data, analysis=analysis))
 
+# Configure the Evidently drift detection step
+drift_detection_step = evidently_report_step.with_options(
+    parameters=dict(
+        column_mapping=EvidentlyColumnMapping(
+            target="price",
+            numerical_features=[
+                "brand_rating", "num_reviews", "days_since_release", 
+                "shipping_weight", "competitors_price", "manufacturing_cost", 
+                "tax_rate", "final_price"
+            ],
+            categorical_features=["category", "discount_offered"],
+            text_features=None,
+        ),
+        metrics=[
+            EvidentlyMetricConfig.metric("DataQualityPreset"),
+            EvidentlyMetricConfig.metric("DataDriftPreset"),
+            EvidentlyMetricConfig.metric("TargetDriftPreset"),
+        ],
+        # Add report options for better visualization
+        report_options=[
+            (
+                "evidently.options.ColorOptions", {
+                    "primary_color": "#5a86ad",
+                    "fill_color": "#fff4f2",
+                    "zero_line_color": "#016795",
+                    "current_data_color": "#c292a1", 
+                    "reference_data_color": "#017b92",
+                }
+            ),
+        ],
+    ),
+)
+
 
 @pipeline
-def price_prediction_training(n_samples: int, epochs: int = 15, country: Union[str, Country] = "All"):
-    """Pipeline that demonstrates ZenML's visualization and reporting capabilities."""
+def price_prediction_training(
+    n_samples: int, 
+    epochs: int = 15, 
+    country: Union[str, Country] = "All",
+    detect_drift: bool = False,
+    simulate_drift: bool = False
+):
+    """Pipeline that demonstrates ZenML's visualization and reporting capabilities with optional drift detection."""
     # Convert Country enum to string before passing to steps
     country_name = resolve_country(country)
     
-    raw_data = load_data(n_samples)
-    data_analysis = analyze_data(raw_data)
-    filtered_data = filter_by_country(raw_data, country_name)
-    cleaned_data = clean_data(filtered_data)
+    if detect_drift:
+        # Load reference and current data for drift detection
+        reference_data = load_reference_data(n_samples)
+        current_data = load_current_data(n_samples, simulate_drift=simulate_drift)
+        
+        # Filter both datasets by country
+        filtered_reference = filter_by_country(reference_data, country_name)
+        filtered_current = filter_by_country(current_data, country_name)
+        
+        # Clean both datasets
+        cleaned_reference = clean_data(filtered_reference)
+        cleaned_current = clean_data(filtered_current)
+        
+        # Perform drift detection
+        drift_report_json, drift_report_html = drift_detection_step(
+            reference_dataset=cleaned_reference,
+            comparison_dataset=cleaned_current
+        )
+        
+        # Use current data for training
+        raw_data = current_data
+        cleaned_data = cleaned_current
+        
+        # Analyze current data
+        data_analysis = analyze_data(raw_data)
+    else:
+        # Original pipeline without drift detection
+        raw_data = load_data(n_samples)
+        data_analysis = analyze_data(raw_data)
+        filtered_data = filter_by_country(raw_data, country_name)
+        cleaned_data = clean_data(filtered_data)
+    
+    # Train model on cleaned data
     model, model_report = train_model(cleaned_data, epochs)
     
-    
+    # Generate data analysis report
     data_report = generate_data_analysis_report(raw_data, cleaned_data, data_analysis)
 
-    return model, model_report, data_report
+    if detect_drift:
+        return model, model_report, data_report, drift_report_html
+    else:
+        return model, model_report, data_report
 
 @click.command()
 @click.option("--config", default="training_config.yaml", help="Path to configuration file")
 def main(config: str):
     """Run the price prediction training pipeline."""
     price_prediction_training.with_options(config_path=config)()
+ 
 
 if __name__ == "__main__":
     main() 

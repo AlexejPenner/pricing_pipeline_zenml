@@ -62,12 +62,16 @@ def resolve_country(country: Union[str, Country, None]) -> str:
     else:
         return "All"
 
-def mock_data(n_samples: int = 1000) -> pd.DataFrame:
+def mock_data(n_samples: int = 1000, drift_config: dict = None) -> pd.DataFrame:
     """
     Generate synthetic product price data with various features.
     
     Args:
         n_samples: Number of samples to generate (default: 1000)
+        drift_config: Optional dict to simulate data drift with keys:
+            - price_multipliers: dict mapping category to price multiplier
+            - category_shift: dict mapping from category to target category weights
+            - time_factor: float representing time progression (0.0-1.0)
         
     Returns:
         pd.DataFrame: Synthetic dataset with product information
@@ -109,7 +113,27 @@ def mock_data(n_samples: int = 1000) -> pd.DataFrame:
         raise ValueError(f"Failed to generate country assignments: {e}")
     
     # First generate the categories
-    categories = np.random.choice(["Electronics", "Clothing", "Home", "Books", "Sports"], n_samples)
+    base_categories = ["Electronics", "Clothing", "Home", "Books", "Sports"]
+    category_weights = [0.2, 0.2, 0.2, 0.2, 0.2]  # Default equal weights
+    
+    # Apply category shift if drift_config is provided
+    if drift_config and "category_shift" in drift_config:
+        shift_config = drift_config["category_shift"]
+        time_factor = drift_config.get("time_factor", 0.0)
+        
+        # Adjust weights based on drift configuration
+        for i, category in enumerate(base_categories):
+            if category in shift_config:
+                # Gradually shift weights over time
+                original_weight = category_weights[i]
+                target_weight = shift_config[category]
+                category_weights[i] = original_weight + (target_weight - original_weight) * time_factor
+        
+        # Normalize weights
+        total_weight = sum(category_weights)
+        category_weights = [w / total_weight for w in category_weights]
+    
+    categories = np.random.choice(base_categories, n_samples, p=category_weights)
     
     # Define category-specific distribution parameters (base USD prices)
     category_params = {
@@ -181,6 +205,20 @@ def mock_data(n_samples: int = 1000) -> pd.DataFrame:
         prices[mask] = base_prices
         manufacturing_costs[mask] = base_costs
         shipping_weights[mask] = base_weights
+    
+    # Apply price drift if drift_config is provided
+    if drift_config and "price_multipliers" in drift_config:
+        price_multipliers = drift_config["price_multipliers"]
+        time_factor = drift_config.get("time_factor", 0.0)
+        
+        for category in price_multipliers:
+            if category in categories:
+                mask = categories == category
+                target_multiplier = price_multipliers[category]
+                # Apply gradual price change over time
+                drift_multiplier = 1.0 + (target_multiplier - 1.0) * time_factor
+                prices[mask] *= drift_multiplier
+                manufacturing_costs[mask] *= drift_multiplier * 0.8  # Costs change less than prices
     
     # Ensure all values are positive
     prices = np.maximum(prices, 10)  # Minimum price of $10
