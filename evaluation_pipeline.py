@@ -555,7 +555,7 @@ def price_prediction_evaluation(
     )
     
     # Check for drift and send Slack alert if detected
-    drift_alert_result = slack_drift_alert(model_drift_report_json)
+    # drift_alert_result = slack_drift_alert(model_drift_report_json)
     
     # Attach metadata to the model
     metadata_result = attach_metadata_to_model(evaluation_metrics, evaluation_predictions_df)

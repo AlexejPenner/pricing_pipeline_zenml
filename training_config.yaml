@@ -17,6 +17,12 @@ model:
 
 # Docker settings
 settings:
+  orchestrator.databricks:
+    node_type_id: "Standard_D4s_v4"
+    spark_version: "14.3.x-scala2.12"
+    autoscale:
+      - 1
+      - 1
   docker:
     requirements: "requirements.txt"
     python_package_installer: "uv"
@@ -24,7 +30,7 @@ settings:
 # Step-specific configuration
 steps:
   load_data:
-    enable_cache: True
+    enable_cache: False
 
   analyze_data:
     enable_cache: False

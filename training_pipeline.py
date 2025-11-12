@@ -490,9 +490,8 @@ drift_detection_step = evidently_report_step.with_options(
     ),
 )
 
-
 @pipeline
-def price_prediction_training(
+def training_price_prediction(
     n_samples: int, 
     epochs: int = 15, 
     country: Union[str, Country] = "All",
@@ -550,7 +549,7 @@ def price_prediction_training(
 @click.option("--config", default="training_config.yaml", help="Path to configuration file")
 def main(config: str):
     """Run the price prediction training pipeline."""
-    price_prediction_training.with_options(config_path=config)()
+    training_price_prediction.with_options(config_path=config)()
  
 
 if __name__ == "__main__":

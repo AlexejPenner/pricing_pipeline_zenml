@@ -2,10 +2,10 @@ numpy>=1.21.0
 pandas>=1.3.0
 scikit-learn>=0.24.0,<1.4
 plotly>=5.3.0
-zenml>=0.84.0
+zenml>=0.91.0
 click>=8.0.0
 joblib>=1.0.0
-pyarrow
+pyarrow>=10.0.1
 mlflow
 ipython
 slack-sdk==3.30.0
