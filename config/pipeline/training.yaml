@@ -1,0 +1,34 @@
+# Standard training pipeline (matches training_config.yaml)
+
+parameters:
+  epochs: 10
+  n_samples: 11000
+  country: ""
+
+settings:
+  orchestrator.databricks:
+      node_type_id: "Standard_D4s_v4"
+      spark_version: "14.3.x-scala2.12"
+      autoscale:
+        - 1
+        - 1
+
+steps:
+  load_data:
+    enable_cache: false
+  analyze_data:
+    enable_cache: false
+  filter_by_country:
+    enable_cache: true
+  clean_data:
+    enable_cache: true
+  train_model:
+    docker:
+      requirements: "requirements_gpu.txt"
+      python_package_installer: "uv"
+      build_config:
+        build_options:
+          --platform: linux/amd64
+    enable_cache: false
+  generate_data_analysis_report:
+    enable_cache: false

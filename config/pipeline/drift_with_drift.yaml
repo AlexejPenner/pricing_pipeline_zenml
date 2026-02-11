@@ -1,0 +1,85 @@
+# Drift detection - with drift scenario (matches drift_detection_with_drift_config.yaml)
+
+parameters:
+  epochs: 15
+  n_samples: 10000
+  country: "Germany"
+  detect_drift: true
+  simulate_drift: true
+
+model:
+  name: "PricePrediction"
+  description: "Price prediction model demonstrating drift detection when data drift occurs."
+  license: "MIT"
+  tags:
+    - drift_detection
+    - monitoring
+    - data_quality
+    - drift_scenario
+    - alert_condition
+
+steps:
+  load_reference_data:
+    enable_cache: true
+  load_current_data:
+    enable_cache: false
+  analyze_data:
+    enable_cache: false
+  filter_by_country:
+    enable_cache: true
+  clean_data:
+    enable_cache: true
+  train_model:
+    docker:
+      requirements: "requirements_gpu.txt"
+      python_package_installer: "uv"
+    enable_cache: false
+    experiment_tracker: true
+  generate_data_analysis_report:
+    enable_cache: false
+  drift_detection_step:
+    enable_cache: false
+    experiment_tracker: true
+
+drift_detection:
+  enabled: true
+  thresholds:
+    data_drift_score: 0.3
+    target_drift_score: 0.25
+    feature_drift_score: 0.3
+  monitoring:
+    save_reports: true
+    alert_on_drift: true
+  evidently_config:
+    color_scheme: "default"
+    reference_period: "30d"
+    comparison_period: "7d"
+  drift_simulation:
+    enabled: true
+    time_factor: 1.0
+    price_multipliers:
+      Electronics: 1.3
+      Clothing: 1.1
+      Books: 0.9
+      Home: 1.05
+      Sports: 0.95
+    category_shift:
+      Electronics: 0.35
+      Books: 0.1
+      Clothing: 0.15
+      Home: 0.25
+      Sports: 0.15
+
+resources:
+  cpu_count: 4
+  memory: "8GB"
+
+alerting:
+  enabled: true
+  channels:
+    - slack
+    - email
+  conditions:
+    - drift_score_exceeds_threshold
+    - target_drift_detected
+    - feature_importance_changed

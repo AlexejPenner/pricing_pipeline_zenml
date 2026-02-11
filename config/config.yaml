@@ -1,0 +1,15 @@
+# Hydra configuration for the pricing pipeline
+# Run with: python training_pipeline.py (uses training by default)
+# Or: python training_pipeline.py pipeline=drift_no_drift
+# Or: python training_pipeline.py pipeline=drift_with_drift
+# Or: python training_pipeline.py pipeline=training_schedule
+
+defaults:
+  - _self_
+  - base/default
+  # pipeline is added via override: +pipeline=training (default) or +pipeline=drift_no_drift, etc.
+
+# Allow command-line overrides
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

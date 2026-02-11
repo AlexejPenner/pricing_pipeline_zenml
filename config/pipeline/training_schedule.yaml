@@ -1,0 +1,31 @@
+# Training pipeline with schedule (matches training_schedule_config.yaml)
+
+parameters:
+  epochs: 15
+  n_samples: 1000
+  country: "All"
+
+schedule:
+  name: "price-prediction-training-schedule"
+  cron_expression: "* * * * *"  # Run every minute for testing
+  catchup: false
+
+steps:
+  load_data:
+    enable_cache: true
+    parameters:
+      n_samples: 1000
+  analyze_data:
+    enable_cache: false
+  filter_by_country:
+    enable_cache: true
+    parameters:
+      country: "All"
+  clean_data:
+    enable_cache: true
+  train_model:
+    enable_cache: false
+    parameters:
+      epochs: 15
+  generate_data_analysis_report:
+    enable_cache: false

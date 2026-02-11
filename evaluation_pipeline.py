@@ -317,11 +317,11 @@ model_performance_step = evidently_report_step.with_options(
         ],
         report_options=[
             (
-                "evidently.options.ColorOptions", {
+                "evidently.legacy.options.color_scheme.ColorOptions", {
                     "primary_color": "#5a86ad",
                     "fill_color": "#fff4f2",
                     "zero_line_color": "#016795",
-                    "current_data_color": "#c292a1", 
+                    "current_data_color": "#c292a1",
                     "reference_data_color": "#017b92",
                 }
             ),
@@ -564,7 +564,7 @@ def price_prediction_evaluation(
 
 
 @click.command()
-@click.option("--config", default="evaluation_config.yaml", help="Path to configuration file")
+@click.option("--config", default="config_old/evaluation_config.yaml", help="Path to configuration file")
 def main(config: str):
     """Run the price prediction evaluation pipeline."""
     price_prediction_evaluation.with_options(config_path=config)()

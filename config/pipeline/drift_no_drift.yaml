@@ -1,0 +1,53 @@
+# Drift detection - no drift scenario (matches drift_detection_no_drift_config.yaml)
+
+parameters:
+  epochs: 12
+  n_samples: 8000
+  country: "USA"
+  detect_drift: true
+  simulate_drift: false
+
+model:
+  name: "PricePrediction"
+  description: "Price prediction model with successful drift detection - no drift scenario."
+  tags:
+    - drift_detection
+    - monitoring
+    - production_ready
+    - no_drift_scenario
+
+steps:
+  load_reference_data:
+    enable_cache: true
+  load_current_data:
+    enable_cache: true
+  analyze_data:
+    enable_cache: false
+  filter_by_country:
+    enable_cache: true
+  clean_data:
+    enable_cache: true
+  train_model:
+    docker:
+      requirements: "requirements_gpu.txt"
+      python_package_installer: "uv"
+    enable_cache: false
+  generate_data_analysis_report:
+    enable_cache: false
+  drift_detection_step:
+    enable_cache: false
+    experiment_tracker: true
+
+drift_detection:
+  enabled: true
+  thresholds:
+    data_drift_score: 0.1
+    target_drift_score: 0.05
+    feature_drift_score: 0.1
+  monitoring:
+    save_reports: true
+    alert_on_drift: false
+  evidently_config:
+    color_scheme: "default"
+    reference_period: "30d"
+    comparison_period: "7d"

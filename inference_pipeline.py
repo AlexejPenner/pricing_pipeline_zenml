@@ -74,4 +74,4 @@ def price_prediction_inference(
     return predicted_price
 
 if __name__ == "__main__":
-    price_prediction_inference.with_options(config_path="inference_config.yaml")()
+    price_prediction_inference.with_options(config_path="config_old/inference_config.yaml")()

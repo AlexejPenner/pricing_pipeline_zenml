@@ -1,0 +1,18 @@
+# Base configuration shared across all pipeline variants
+
+# Pipeline-level configuration
+enable_cache: true
+enable_step_logs: true
+enable_artifact_metadata: true
+enable_artifact_visualization: true
+
+# Model configuration (overridden by pipeline configs)
+model:
+  name: "PricePrediction"
+  description: "End-to-end pipeline for price prediction."
+
+# Docker settings
+settings:
+  docker:
+    requirements: "requirements.txt"
+    python_package_installer: "uv"

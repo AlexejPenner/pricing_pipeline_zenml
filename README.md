@@ -18,13 +18,18 @@ zenml stack set <INSERT_NAME>
 
 2. Run training pipeline:
 ```bash
-# Using default configuration
+# Hydra-based configuration (default: training pipeline)
 python training_pipeline.py
 
-# Using scheduled configuration (runs every minute for testing)
-python training_pipeline.py --config training_schedule_config.yaml
+# Select pipeline variant via Hydra
+python training_pipeline.py pipeline=drift_no_drift
+python training_pipeline.py pipeline=drift_with_drift
+python training_pipeline.py pipeline=training_schedule
 
-# Using custom configuration
+# Override parameters from the command line
+python training_pipeline.py parameters.epochs=20 parameters.country=Germany
+
+# Or use a raw YAML config file (bypasses Hydra)
 python training_pipeline.py --config path/to/your/config.yaml
 ```
 
@@ -38,7 +43,9 @@ python inference_pipeline.py
 ### Deploy Scheduled Pipeline
 ```bash
 # Create and deploy a scheduled training pipeline (runs every minute for testing)
-python training_pipeline.py --config training_schedule_config.yaml
+python training_pipeline.py pipeline=training_schedule
+# Or with legacy config file:
+python training_pipeline.py --config config_old/training_schedule_config.yaml
 ```
 
 ### Manage Schedules
@@ -57,9 +64,18 @@ zenml pipeline schedule delete price-prediction-training-schedule
 
 This is a proof-of-concept ML pipeline using ZenML for price prediction with synthetic e-commerce data.
 
+## Configuration (Hydra)
+
+Configs live in `config/`:
+- `config/base/default.yaml` – shared defaults
+- `config/pipeline/training.yaml` – standard training
+- `config/pipeline/training_schedule.yaml` – scheduled runs
+- `config/pipeline/drift_no_drift.yaml` – drift detection, no drift
+- `config/pipeline/drift_with_drift.yaml` – drift detection with drift
+
 ## Potential Improvements
 
-- Extract pipeline configurations from decorators to YAML files
+- Move pipeline steps into individual module files
 - Move pipeline steps into individual module files
 - Use Model stages to attach the inference pipeline only to the 
 - Connect to real data sources instead of synthetic data

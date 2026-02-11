@@ -1,3 +1,5 @@
+import os
+import tempfile
 import numpy as np
 from typing import Annotated, Dict, Tuple, List, Union
 import datetime
@@ -270,7 +272,13 @@ def train_model(
         ]:
     """Train a model to predict product prices."""
     
+    import logging
+    import warnings
     import mlflow
+
+    # Suppress MLflow autologging warnings: integer schema hint and 404 on logged-models API (e.g. ZenML server)
+    warnings.filterwarnings("ignore", message=".*Inferred schema contains integer column.*", category=UserWarning)
+    logging.getLogger("mlflow.utils.autologging_utils").setLevel(logging.ERROR)
     mlflow.autolog()
     mlflow.set_tag("model_type", "GradientBoostingRegressor")
     mlflow.set_tag("epochs", epochs)
@@ -475,14 +483,14 @@ drift_detection_step = evidently_report_step.with_options(
             EvidentlyMetricConfig.metric("DataDriftPreset"),
             EvidentlyMetricConfig.metric("TargetDriftPreset"),
         ],
-        # Add report options for better visualization
+        # Add report options for better visualization (Evidently 0.7+ uses legacy.options path)
         report_options=[
             (
-                "evidently.options.ColorOptions", {
+                "evidently.legacy.options.color_scheme.ColorOptions", {
                     "primary_color": "#5a86ad",
                     "fill_color": "#fff4f2",
                     "zero_line_color": "#016795",
-                    "current_data_color": "#c292a1", 
+                    "current_data_color": "#c292a1",
                     "reference_data_color": "#017b92",
                 }
             ),
@@ -545,12 +553,74 @@ def training_price_prediction(
     else:
         return model, model_report, data_report
 
-@click.command()
-@click.option("--config", default="training_config.yaml", help="Path to configuration file")
-def main(config: str):
-    """Run the price prediction training pipeline."""
-    training_price_prediction.with_options(config_path=config)()
- 
+@click.command(context_settings=dict(ignore_unknown_options=True))
+@click.option(
+    "--config",
+    default=None,
+    help="Path to YAML config file (bypasses Hydra when provided)",
+)
+@click.argument("hydra_overrides", nargs=-1, type=click.UNPROCESSED)
+def main(config: str | None, hydra_overrides: tuple[str, ...]):
+    """Run the price prediction training pipeline.
+
+    Uses Hydra for configuration. Examples:
+      python training_pipeline.py
+      python training_pipeline.py pipeline=drift_no_drift
+      python training_pipeline.py pipeline=drift_with_drift
+      python training_pipeline.py pipeline=training_schedule
+      python training_pipeline.py parameters.epochs=20 parameters.country=Germany
+      python training_pipeline.py --config path/to/custom.yaml  # bypass Hydra
+    """
+    pipeline_params = {}
+    if config is not None:
+        config_path = config
+        cleanup_config = False
+        import yaml
+        with open(config_path) as f:
+            pipeline_params = dict((yaml.safe_load(f) or {}).get("parameters") or {})
+    else:
+        from hydra import compose, initialize_config_dir
+        from hydra.core.global_hydra import GlobalHydra
+        from omegaconf import OmegaConf
+
+        # Add pipeline config group; default is "training" unless overridden by pipeline=X
+        _DEFAULT_PIPELINE = "training"
+        pipeline_choice = _DEFAULT_PIPELINE
+        overrides = []
+        for o in hydra_overrides:
+            if o.startswith("pipeline=") and "~" not in o and "+" not in o:
+                pipeline_choice = o.split("=", 1)[1].strip()
+                continue
+            overrides.append(o)
+        overrides = [f"+pipeline={pipeline_choice}"] + overrides
+        config_dir = os.path.join(os.path.dirname(__file__), "config")
+        GlobalHydra.instance().clear()
+        with initialize_config_dir(config_dir=config_dir, version_base=None):
+            cfg = compose(config_name="config", overrides=overrides)
+
+        # Hydra creates config groups (base, pipeline); merge into flat ZenML config
+        from zenml.utils import dict_utils
+        base_dict = dict(OmegaConf.to_container(cfg.base, resolve=True)) if hasattr(cfg, "base") else {}
+        pipeline_dict = dict(OmegaConf.to_container(cfg.pipeline, resolve=True)) if hasattr(cfg, "pipeline") else {}
+        zenml_dict = dict_utils.recursive_update(dict(base_dict), dict(pipeline_dict))
+        zenml_cfg = OmegaConf.create(zenml_dict)
+        pipeline_params = dict(zenml_dict.get("parameters") or {})
+
+        fd, config_path = tempfile.mkstemp(suffix=".yaml", prefix="zenml_config_")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(OmegaConf.to_yaml(zenml_cfg, resolve=True))
+        except Exception:
+            os.unlink(config_path)
+            raise
+        cleanup_config = True
+
+    try:
+        training_price_prediction.with_options(config_path=config_path)(**pipeline_params)
+    finally:
+        if cleanup_config and os.path.exists(config_path):
+            os.unlink(config_path)
+
 
 if __name__ == "__main__":
     main() 
