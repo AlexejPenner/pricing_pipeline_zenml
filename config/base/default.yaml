@@ -16,3 +16,6 @@ settings:
   docker:
     requirements: "requirements.txt"
     python_package_installer: "uv"
+    build_config:
+      build_options:
+        platform: linux/amd64

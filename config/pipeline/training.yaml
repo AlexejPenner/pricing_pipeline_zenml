@@ -15,7 +15,7 @@ settings:
 
 steps:
   load_data:
-    enable_cache: false
+    enable_cache: true
   analyze_data:
     enable_cache: false
   filter_by_country:
@@ -28,7 +28,7 @@ steps:
       python_package_installer: "uv"
       build_config:
         build_options:
-          --platform: linux/amd64
+          platform: linux/amd64
     enable_cache: false
   generate_data_analysis_report:
     enable_cache: false
