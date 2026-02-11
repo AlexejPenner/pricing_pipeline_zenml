@@ -501,7 +501,7 @@ drift_detection_step = evidently_report_step.with_options(
 @pipeline
 def training_price_prediction(
     n_samples: int, 
-    epochs: int = 15, 
+    epochs: int = 14, 
     country: Union[str, Country] = "All",
     detect_drift: bool = False,
     simulate_drift: bool = False
@@ -624,3 +624,4 @@ def main(config: str | None, hydra_overrides: tuple[str, ...]):
 
 if __name__ == "__main__":
     main() 
+    print("Pipeline run kicked off successfully")
