@@ -12,3 +12,4 @@ mlflow
 ipython
 slack-sdk==3.30.0
 evidently
+pygithub

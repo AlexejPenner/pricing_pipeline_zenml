@@ -190,3 +190,6 @@ secrets/
 *.pem
 CLAUDE.md
 commands.txt
+
+.envrc
+.zen
