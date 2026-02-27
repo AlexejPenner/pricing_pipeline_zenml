@@ -28,12 +28,6 @@ steps:
   clean_data:
     enable_cache: true
   train_model:
-    docker:
-      requirements: "requirements_gpu.txt"
-      python_package_installer: "uv"
-      build_config:
-        build_options:
-          platform: linux/amd64
     enable_cache: false
   generate_data_analysis_report:
     enable_cache: false

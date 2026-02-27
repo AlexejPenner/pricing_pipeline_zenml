@@ -52,7 +52,7 @@ steps:
     
   train_model:
     docker:
-      requirements: "requirements_gpu.txt"
+      requirements: "requirements.txt"
       python_package_installer: "uv"
     enable_cache: False
     experiment_tracker: True  # Track experiments when drift occurs

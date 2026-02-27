@@ -43,7 +43,7 @@ steps:
 
   train_model:
     docker:
-      requirements: "requirements_gpu.txt"
+      requirements: "requirements.txt"
       python_package_installer: "uv"
       build_config:
         build_options:

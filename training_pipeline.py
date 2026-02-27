@@ -591,7 +591,11 @@ def main(config: str | None, hydra_overrides: tuple[str, ...]):
             if o.startswith("pipeline=") and "~" not in o and "+" not in o:
                 pipeline_choice = o.split("=", 1)[1].strip()
                 continue
-            overrides.append(o)
+            # parameters lives under pipeline in Hydra; rewrite for user-friendly CLI
+            if o.startswith("parameters.") and not o.startswith("pipeline.parameters."):
+                overrides.append("pipeline." + o)
+            else:
+                overrides.append(o)
         overrides = [f"+pipeline={pipeline_choice}"] + overrides
         config_dir = os.path.join(os.path.dirname(__file__), "config")
         GlobalHydra.instance().clear()

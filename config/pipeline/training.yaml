@@ -4,6 +4,8 @@ parameters:
   epochs: 10
   n_samples: 11000
   country: ""
+  detect_drift: false
+  simulate_drift: false
 
 steps:
   load_data:
