@@ -2,7 +2,7 @@ from typing import Annotated, Tuple
 import pandas as pd
 
 from zenml import step, pipeline, Model, get_step_context
-from zenml.config import DockerSettings
+from zenml.config import DeploymentSettings, DockerSettings
 from zenml.enums import ModelStages
 
 @step
@@ -58,7 +58,13 @@ def inference(input_data: pd.DataFrame, model_artifact: str = "price_prediction_
     return results_df, predictions[0]
 
 
-@pipeline
+deployment_settings = DeploymentSettings(
+    app_title="Price Prediction Inference",
+    app_description="Enter a row of product data and get the predicted price.",
+    dashboard_files_path="web",
+)
+
+@pipeline(settings={"deployment": deployment_settings})
 def price_prediction_inference(
     category: str = 'Electronics',
     discount_offered: bool = True,

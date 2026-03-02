@@ -1,0 +1,36 @@
+# Inference deployment config (with built-in web UI)
+# Use this when deploying for local/dev with the visual playground.
+# For production, use inference_config.yaml (has auth enabled).
+
+enable_cache: false
+enable_step_logs: true
+enable_artifact_metadata: true
+enable_artifact_visualization: true
+
+parameters:
+  category: "Electronics"
+  discount_offered: true
+  brand_rating: 4.2
+  num_reviews: 150
+  days_since_release: 45
+  shipping_weight: 2.1
+  competitors_price: 199.99
+  manufacturing_cost: 85.50
+  tax_rate: 0.08
+
+model:
+  name: "PricePrediction"
+  description: "Price prediction model"
+  version: "production"
+
+settings:
+  deployer:
+    generate_auth_key: true  # No auth so built-in web UI works without tokens
+  docker:
+    requirements: "requirements.txt"
+    python_package_installer: "uv"
+
+steps:
+  inference:
+    parameters:
+      model_artifact: "price_prediction_model"

@@ -38,6 +38,24 @@ python training_pipeline.py --config path/to/your/config.yaml
 python inference_pipeline.py
 ```
 
+### Deploy Inference with Web UI
+
+Deploy the inference pipeline as a long-running HTTP service with a built-in visual playground (table row input + prediction):
+
+
+via CLI:
+```bash
+zenml pipeline deploy inference_pipeline.price_prediction_inference \
+  --name price_prediction \
+  --config config_old/inference_deploy.yaml
+```
+
+Once deployed, open the deployment URL (e.g. `http://localhost:8000`) to use the web UI: edit the pre-filled row, click **Predict**, and see the predicted price on the same page.
+
+- **Web UI**: `{deployment_url}/`
+- **API docs**: `{deployment_url}/docs`
+- **Invoke via CLI**: `zenml deployment invoke price_prediction --category=Electronics --brand_rating=4.5 ...`
+
 ## Schedule Management
 
 ### Deploy Scheduled Pipeline
