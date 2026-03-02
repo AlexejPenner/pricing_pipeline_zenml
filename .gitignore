@@ -183,6 +183,10 @@ reports/
 outputs/
 *.html
 
+# Include web UI for ZenML deployment dashboard (exception for web/)
+!web/
+!web/*.html
+
 # Secrets
 secrets/
 .secrets

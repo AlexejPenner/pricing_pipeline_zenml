@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Prediction — Inference</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      color: #1a1a1a;
+      background: #fafafa;
+    }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+    .table-wrap {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      font-weight: 600;
+      color: #666;
+      background: #f8f8f8;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tr:last-child td { border-bottom: none; }
+    input, select {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      font: inherit;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0,102,204,0.15);
+    }
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    .btn {
+      margin-top: 1.25rem;
+      padding: 0.6rem 1.25rem;
+      font: inherit;
+      font-size: 0.9rem;
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #0052a3; }
+    .btn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .result strong { color: #0369a1; }
+    .result.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+    .result.error strong { color: #b91c1c; }
+    .result.empty { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Price Prediction — Single Row Inference</h1>
+  <p style="color:#666;font-size:0.9rem;margin-bottom:1rem;">Edit the row below and click Predict to get the predicted price.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>category</th>
+          <th>discount_offered</th>
+          <th>brand_rating</th>
+          <th>num_reviews</th>
+          <th>days_since_release</th>
+          <th>shipping_weight</th>
+          <th>competitors_price</th>
+          <th>manufacturing_cost</th>
+          <th>tax_rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <select id="category">
+              <option value="Electronics">Electronics</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Home">Home</option>
+              <option value="Books">Books</option>
+              <option value="Sports">Sports</option>
+            </select>
+          </td>
+          <td><input type="checkbox" id="discount_offered" checked></td>
+          <td><input type="number" id="brand_rating" step="0.1" min="0" max="5" value="4.2"></td>
+          <td><input type="number" id="num_reviews" min="0" value="150"></td>
+          <td><input type="number" id="days_since_release" min="0" value="45"></td>
+          <td><input type="number" id="shipping_weight" step="0.1" min="0" value="2.1"></td>
+          <td><input type="number" id="competitors_price" step="0.01" min="0" value="199.99"></td>
+          <td><input type="number" id="manufacturing_cost" step="0.01" min="0" value="85.50"></td>
+          <td><input type="number" id="tax_rate" step="0.01" min="0" max="1" value="0.08"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <button class="btn" id="predictBtn">Predict</button>
+
+  <div class="result empty" id="result"></div>
+
+  <script>
+    const fields = [
+      'category', 'discount_offered', 'brand_rating', 'num_reviews',
+      'days_since_release', 'shipping_weight', 'competitors_price',
+      'manufacturing_cost', 'tax_rate'
+    ];
+
+    function getParams() {
+      const params = {};
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el.type === 'checkbox') params[id] = el.checked;
+        else if (el.type === 'number') params[id] = parseFloat(el.value) || 0;
+        else params[id] = el.value;
+      });
+      return params;
+    }
+
+    async function predict() {
+      const btn = document.getElementById('predictBtn');
+      const result = document.getElementById('result');
+      btn.disabled = true;
+      result.classList.add('empty');
+      result.classList.remove('error');
+
+      const params = getParams();
+      try {
+        const resp = await fetch('/invoke', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parameters: params })
+        });
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          throw new Error(data.detail || JSON.stringify(data));
+        }
+
+        const out = data.outputs || {};
+        const price = out.predicted_price ?? out.inference?.predicted_price ?? data.outputs;
+        const val = typeof price === 'number' ? price : (price?.predicted_price ?? '—');
+
+        result.classList.remove('empty');
+        result.innerHTML = '<strong>Predicted price:</strong> ' + (typeof val === 'number' ? val.toFixed(2) : val);
+      } catch (e) {
+        result.classList.remove('empty');
+        result.classList.add('error');
+        result.innerHTML = '<strong>Error:</strong> ' + (e.message || String(e));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('predictBtn').addEventListener('click', predict);
+  </script>
+</body>
+</html>
