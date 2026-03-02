@@ -13,3 +13,7 @@ ipython
 slack-sdk==3.30.0
 evidently
 pygithub
+# ZenML S3 artifact store integration
+s3fs>2022.3.0,!=2025.3.1
+boto3
+aws-profile-manager
