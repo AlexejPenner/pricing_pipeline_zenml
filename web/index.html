@@ -100,6 +100,11 @@
   <h1>Price Prediction — Single Row Inference</h1>
   <p style="color:#666;font-size:0.9rem;margin-bottom:1rem;">Edit the row below and click Predict to get the predicted price.</p>
 
+  <div style="margin-bottom:1rem;">
+    <label for="authSecret" style="display:block;font-size:0.8rem;color:#666;margin-bottom:0.3rem;">API secret (optional – required if deployment has auth enabled)</label>
+    <input type="password" id="authSecret" placeholder="Paste your deployment auth key here" style="max-width:400px;" autocomplete="off">
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -169,10 +174,14 @@
       result.classList.remove('error');
 
       const params = getParams();
+      const secret = document.getElementById('authSecret').value.trim();
+      const headers = { 'Content-Type': 'application/json' };
+      if (secret) headers['Authorization'] = 'Bearer ' + secret;
+
       try {
         const resp = await fetch('/invoke', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ parameters: params })
         });
         const data = await resp.json();
